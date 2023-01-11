@@ -1,12 +1,5 @@
-﻿using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections;
-using System.Threading;
-using System.Drawing;
+﻿using System.Drawing;
 using Emgu.CV;
-using System.Diagnostics.Metrics;
 
 namespace Object_Detection_yolov7_ML.NET
 {
@@ -105,9 +98,7 @@ namespace Object_Detection_yolov7_ML.NET
         {
             totFrames = (int)videoCapture.Get(Emgu.CV.CvEnum.CapProp.FrameCount);
             frameWidth = (int)videoCapture.Get(Emgu.CV.CvEnum.CapProp.FrameWidth);
-            frameHeight = (int)videoCapture.Get(Emgu.CV.CvEnum.CapProp.FrameHeight);
-            //videoCapture.Set(Emgu.CV.CvEnum.CapProp.FrameWidth, 1280);
-            //videoCapture.Set(Emgu.CV.CvEnum.CapProp.FrameHeight, 720);            
+            frameHeight = (int)videoCapture.Get(Emgu.CV.CvEnum.CapProp.FrameHeight);           
 
             try
             {

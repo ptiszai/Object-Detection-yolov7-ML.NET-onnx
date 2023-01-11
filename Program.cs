@@ -37,12 +37,10 @@ namespace Object_Detection_yolov7_ML.NET
         static private Mat GetMatFromSDImage(System.Drawing.Image image)
         {
             int stride = 0;
-            Bitmap bmp = new Bitmap(image);
-
-            System.Drawing.Rectangle rect = new System.Drawing.Rectangle(0, 0, bmp.Width, bmp.Height);
+            Bitmap bmp = new Bitmap(image);            
+            System.Drawing.Rectangle rect = new System.Drawing.Rectangle(0, 0, bmp.Width, bmp.Height);            
             System.Drawing.Imaging.BitmapData bmpData = bmp.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadWrite, bmp.PixelFormat);
-
-            System.Drawing.Imaging.PixelFormat pf = bmp.PixelFormat;
+            System.Drawing.Imaging.PixelFormat pf = bmp.PixelFormat;          
             if (pf == System.Drawing.Imaging.PixelFormat.Format32bppArgb)
             {
                 stride = bmp.Width * 4;
@@ -51,11 +49,8 @@ namespace Object_Detection_yolov7_ML.NET
             {
                 stride = bmp.Width * 3;
             }
-
             Image<Bgra, byte> cvImage = new Image<Bgra, byte>(bmp.Width, bmp.Height, stride, (IntPtr)bmpData.Scan0);
-
             bmp.UnlockBits(bmpData);
-
             return cvImage.Mat;
         }
 
@@ -64,7 +59,7 @@ namespace Object_Detection_yolov7_ML.NET
         //******************************************************************************
         static void Main(string[] args)
         {
-            bool wr = true;
+            bool wr = false;
             bool mp4 = true;
             bool img = false;
             string assetsPath = GetAbsolutePath(@"../../../");
@@ -77,6 +72,7 @@ namespace Object_Detection_yolov7_ML.NET
             Queue<Mat>? query = null;
             QueueFrame? queryFrame = null;
             bool queueFrameEnd = false;
+            string video_fname = "apples-water.mp4";
 
             Console.WriteLine("Hello, Yolov7 + ML.NET!");                               
 
@@ -104,7 +100,7 @@ namespace Object_Detection_yolov7_ML.NET
                         queueFrameEnd = true;
                     };
                
-                    string video_fileName = imagesFolder + "/cars.mp4";
+                    string video_fileName = imagesFolder + "/" + video_fname;
                     if (!File.Exists(video_fileName))
                     {
                         Console.WriteLine($"ERROR:video file not founded:{video_fileName}!");
@@ -120,10 +116,12 @@ namespace Object_Detection_yolov7_ML.NET
                     {
                         if (wr)
                         {
-                            FileInfo fi = new FileInfo("cars.mp4");
-                            string name = fi.Name;
-                            string videopath_out = Path.Combine(outputFolder, $"result_{name}");
-                            int codec = VideoWriter.Fourcc('m', 'p', '4', 'v');
+                            string name = Path.GetFileNameWithoutExtension(video_fileName); 
+                           // FileInfo fi = new FileInfo("cars.mp4");
+                           // string name = fi.Name;
+                            string videopath_out = Path.Combine(outputFolder, $"result_{name}.mp4");
+                            //int codec = VideoWriter.Fourcc('m', 'p', '4', 'v');
+                            int codec = VideoWriter.Fourcc('R', 'G', 'B', 'A'); // mp3
                             int fps = 10;
                             Size size = queryFrame.GetSize();
                             videowriter = new VideoWriter(videopath_out, codec, fps, size, true);
@@ -138,10 +136,10 @@ namespace Object_Detection_yolov7_ML.NET
                     {
                         if (query.Count>0)
                         {
-                            Console.WriteLine($"query.Count:{query.Count}");
+                           // Console.WriteLine($"query.Count:{query.Count}");
                             Mat frame = query.Dequeue();
                             stopwatch.Restart();
-                            Bitmap image = frame.ToImage<Bgr, Byte>().ToBitmap();
+                            Bitmap image = frame.ToImage<Bgra, Byte>().ToBitmap();
                             List<YoloPrediction> predictions = scorer.Predict(image);                            
                             using var graphics = Graphics.FromImage(image);
                             stopwatch.Stop();
@@ -163,7 +161,7 @@ namespace Object_Detection_yolov7_ML.NET
                            // Console.WriteLine($"predictiont ms:{stopwatch.ElapsedMilliseconds}"); // 10-15 ms
                             if (wr)
                             {
-                                videowriter.Write(frame); !!!!!!!!!!!!!!
+                                videowriter.Write(cvImage);
                             }
                             //stopwatch.Stop();
                            // Console.WriteLine($"predictiont+wr ms:{stopwatch.ElapsedMilliseconds}"); // 19-25 ms
@@ -187,8 +185,7 @@ namespace Object_Detection_yolov7_ML.NET
                     }
                 }
                 catch (Exception ex)
-                {
-                    //Program.mutex.ReleaseMutex();
+                {                   
                     Console.WriteLine($"ERROR:video process {ex.Message}");
                     if (queryFrame != null)
                     {
