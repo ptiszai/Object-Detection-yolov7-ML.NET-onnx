@@ -2,6 +2,7 @@
   "profiles": {
     "Object-Detection-yolov7-ML.NET": {
       "commandName": "Project",
+      "commandLineArgs": "read --model yolov7-tiny-norm.onnx --image cars.mp4 --wr 1",
       "workingDirectory": "D:\\work\\MyProjects\\TIDetection\\Object-Detection-yolov7-ML.NET-onnx"
     }
   }
