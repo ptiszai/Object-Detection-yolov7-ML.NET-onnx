@@ -65,6 +65,7 @@ namespace Object_Detection_yolov7_ML.NET
             }
         }
 
+        //-----------------------
         public void SetSleepMs(long sleep_ms_a)
         {
             sleep_ms = sleep_ms_a;
@@ -106,8 +107,7 @@ namespace Object_Detection_yolov7_ML.NET
                 {
                     if (videoCapture.IsOpened)
                     {                    
-                        Mat frame = videoCapture.QueryFrame();
-                        //videoCapture.Read(frame);
+                        Mat frame = videoCapture.QueryFrame();                       
                         if (frame == null)
                         {
                             run = false;
@@ -131,8 +131,7 @@ namespace Object_Detection_yolov7_ML.NET
                 }
             }
             catch (ThreadAbortException ex)
-            {
-                //Program.mutex.ReleaseMutex();
+            {                
                 Console.WriteLine($"ERROR:QueueFrame:thread.executor {ex.Message}");
                 run = false;
             }

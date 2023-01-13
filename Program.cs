@@ -6,14 +6,12 @@ using Emgu.CV.Structure;
 
 using Yolov5Net.Scorer.Models;
 using Yolov5Net.Scorer;
-using static System.Formats.Asn1.AsnWriter;
-using System.IO;
-using System.Xml.Linq;
+using Microsoft.ML.OnnxRuntime;
 
 namespace Object_Detection_yolov7_ML.NET
 {
     internal class Program
-    {
+    {        
         private static string? modelFile = null;
         private static string? imageFile = null;
         private static bool bwr = false;
@@ -34,10 +32,10 @@ namespace Object_Detection_yolov7_ML.NET
         static private Mat GetMatFromSDImage(System.Drawing.Image image)
         {
             int stride = 0;
-            Bitmap bmp = new Bitmap(image);            
-            System.Drawing.Rectangle rect = new System.Drawing.Rectangle(0, 0, bmp.Width, bmp.Height);            
+            Bitmap bmp = new Bitmap(image);
+            System.Drawing.Rectangle rect = new System.Drawing.Rectangle(0, 0, bmp.Width, bmp.Height);
             System.Drawing.Imaging.BitmapData bmpData = bmp.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadWrite, bmp.PixelFormat);
-            System.Drawing.Imaging.PixelFormat pf = bmp.PixelFormat;          
+            System.Drawing.Imaging.PixelFormat pf = bmp.PixelFormat;
             if (pf == System.Drawing.Imaging.PixelFormat.Format32bppArgb)
             {
                 stride = bmp.Width * 4;
@@ -52,19 +50,19 @@ namespace Object_Detection_yolov7_ML.NET
         }
 
         //-------------------------------------------------------
-        static bool SetGpu()
+        /*static bool SetGpu()
         {
             //scorer you need an option set for GPU
             //https://stackoverflow.com/questions/70369664/guide-to-use-yolo-with-gpu-c-sharp
             return true;
-        }
+        }*/
 
         //-------------------------------------------------------
-        internal static async Task ReadFile(string model, string image, int wr, int gpu)
+        internal static async Task ReadFile( string model, string image, int wr, int gpu)
         {
             modelFile = model;
-            imageFile = image;
-            bwr = (wr>0)?true:false;
+            imageFile = image;           
+            bwr = (wr > 0) ? true : false;
             bgpu = (gpu > 0) ? true : false;
         }
 
@@ -76,21 +74,28 @@ namespace Object_Detection_yolov7_ML.NET
             // https://learn.microsoft.com/en-us/dotnet/standard/commandline/get-started-tutorial        
             bool bmp4 = false;
             bool bimg = false;
-            string assetsPath = GetAbsolutePath(@"../../../");            
+            string assetsPath = GetAbsolutePath(@"../../../");
             string? modelFilePath = null;
             string? imageFilePath = null;
-            string outputFolder = Path.Combine(assetsPath, "output");           
-            VideoWriter? videowriter = null ;
+            string outputFolder = Path.Combine(assetsPath, "output");
+            VideoWriter? videowriter = null;
             string windowName = "ML.NET";
             Stopwatch stopwatch = new Stopwatch();
             Queue<Mat>? query = null;
             QueueFrame? queryFrame = null;
-            bool queueFrameEnd = false;            
+            bool queueFrameEnd = false;
+            SessionOptions? options = null;
 
             Console.WriteLine("Hello, Yolov7 + ML.NET!");
+
+         /*   var pathoption = new Option<string?>(
+            name: "--path",
+            description: "Working path.",
+            getDefaultValue: () => "./");*/
+
             var modeloption = new Option<string?>(
-                name: "--model",
-                description: "The *.onnx binary model file to read.");
+            name: "--model",
+            description: "The *.onnx binary model file to read.");
 
             var imageoption = new Option<string?>(
             name: "--image",
@@ -108,7 +113,7 @@ namespace Object_Detection_yolov7_ML.NET
 
             var rootCommand = new RootCommand("Object-Detection-yolov7-ML.NET app for Windows ML.NET");
             var readCommand = new Command("read", "Read and display the file.")
-            {
+            {              
                 modeloption,
                 imageoption,               
                 videoWriteoption,
@@ -121,7 +126,7 @@ namespace Object_Detection_yolov7_ML.NET
             {
                 await ReadFile(model!, image, wr, gpu);
             },
-            modeloption, imageoption, videoWriteoption, gpuoption);
+             modeloption, imageoption, videoWriteoption, gpuoption);
 
             int result = rootCommand.InvokeAsync(args).Result;
 
@@ -130,6 +135,7 @@ namespace Object_Detection_yolov7_ML.NET
                 Console.WriteLine("ERROR:command parser");
                 return 1;
             }
+
             if (modelFile == null)
             {
                 Console.WriteLine("ERROR:modelFile == null");
@@ -170,13 +176,23 @@ namespace Object_Detection_yolov7_ML.NET
 
             if (bgpu)
             {
-                if (!SetGpu())
+                /*if (!SetGpu())
                 {
                     Console.WriteLine("ERROR:not foundid GPU, it is failer");
                     return 1;
-                }
+                }*/
             }
-            YoloScorer<YoloCocoP5Model> scorer = new YoloScorer<YoloCocoP5Model>(modelFilePath); //460 ms
+            if (bgpu)
+            {            
+                options = SessionOptions.MakeSessionOptionWithCudaProvider(0);
+                Console.WriteLine("GPU mode");
+            }
+            else
+            {
+                Console.WriteLine("CPU mode");
+            }
+       
+            YoloScorer<YoloCocoP5Model> scorer = new YoloScorer<YoloCocoP5Model>(modelFilePath, options); //460 ms
             if (scorer == null)
             {
                 Console.WriteLine($"ERROR:model not DOWNLOADED:{modelFilePath}");
@@ -242,7 +258,8 @@ namespace Object_Detection_yolov7_ML.NET
                             using var graphics = Graphics.FromImage(image);
                             stopwatch.Stop();
                             long elapsed_time = stopwatch.ElapsedMilliseconds;                            
-                            string label = $"Inference time {elapsed_time} ms!"; // 450-500 ms
+                            string label = $"Inference time {elapsed_time} ms!"; // CPU: 450-500 ms
+                                                                                 // GPU: 150-250 ms
                             Console.WriteLine(label);
                             queryFrame.SetSleepMs(elapsed_time);
                             //stopwatch.Restart();
